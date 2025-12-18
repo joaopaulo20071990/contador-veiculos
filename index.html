@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Contador de Tempo por Veículo</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 40px; background: #f8f8f8; }
+    .container { max-width: 400px; margin: auto; padding: 20px; background: #fff; border-radius: 10px; box-shadow: 2px 2px 12px #ddd; }
+    label { display: block; margin-top: 15px; color: #222; }
+    input, select { width: 100%; padding: 10px; margin-top: 5px; margin-bottom: 15px; }
+    button { padding: 10px 25px; font-size: 1em; margin: 5px; }
+    .cards { max-width: 500px; margin: 30px auto 0; }
+    .card {
+      background: #e9ffe4; border: 1px solid #b8e2bb; border-radius: 8px;
+      margin-bottom: 18px; padding: 18px; box-shadow: 2px 2px 10px #eee;
+      position: relative;
+    }
+    .timer { font-size: 1.6em; color: #096e15; font-weight: bold; margin-top: 10px;}
+    .info { margin-bottom: 4px; }
+    .remove-btn { position: absolute; top: 10px; right: 20px; background: #d36262; color: #fff; border: none; border-radius: 4px; padding: 3px 8px; cursor: pointer;}
+    .filter-box { max-width: 500px; margin: 20px auto 0; background: #fff; padding: 14px 20px 14px 20px; border-radius: 8px; box-shadow: 2px 2px 10px #eee; }
+    .filter-label { font-size: 1.1em; margin-bottom: 0; }
+    .start-time { color: #333; font-size: 0.99em; margin-bottom: 5px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <label for="placa">PLACA:</label>
+    <input type="text" id="placa" placeholder="Digite a placa">
+
+    <label for="do ca">DOCA:</label>
+    <input type="text" id="doca" placeholder="Digite a doca">
+
+    <label for="transportadora">TRANSPORTADORA:</label>
+    <select id="transportadora">
+      <option value="">Selecione</option>
+      <option value="ALC TRANSPORTES">ALC TRANSPORTES</option>
+      <option value="MURICI">MURICI</option>
+      <option value="TORRES">TORRES</option>
+      <option value="UNICA">UNICA</option>
+      <option value="KANGU">KANGU</option>
+      <option value="BLD">BLD</option>
+    </select>
+
+    <button onclick="adicionarContador()">Iniciar</button>
+  </div>
+
+  <div class="filter-box">
+    <label class="filter-label" for="filtroTransportadora">Filtrar por Transportadora:</label>
+    <input type="text" id="filtroTransportadora" oninput="filtrarCards()" placeholder="Digite parte do nome...">
+  </div>
+
+  <div id="cards" class="cards"></div>
+
+  <script>
+    let contadores = [];
+
+    function adicionarContador() {
+      const placa = document.getElementById('placa').value.trim();
+      const doca = document.getElementById('doca').value.trim();
+      const transportadora = document.getElementById('transportadora').value.trim();
+      if (!placa || !transportadora || !doca) {
+        alert('Preencha todos os campos!');
+        return;
+      }
+
+      // Horário de início no formato HH:MM:SS
+      const now = new Date();
+      const startTimeStr = now.toLocaleTimeString('pt-BR', { hour12: false });
+
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.setAttribute('data-transportadora', transportadora.toLowerCase());
+
+      const infoPlaca = document.createElement('div');
+      infoPlaca.className = 'info';
+      infoPlaca.innerHTML = `<b>Placa:</b> ${placa}`;
+
+      const infoDoca = document.createElement('div');
+      infoDoca.className = 'info';
+      infoDoca.innerHTML = `<b>Doca:</b> ${doca}`;
+
+      const infoTransp = document.createElement('div');
+      infoTransp.className = 'info';
+      infoTransp.innerHTML = `<b>Transportadora:</b> ${transportadora}`;
+
+      const infoStartTime = document.createElement('div');
+      infoStartTime.className = 'start-time';
+      infoStartTime.innerHTML = `<b>Horário de Início:</b> ${startTimeStr}`;
+
+      const timerDisplay = document.createElement('div');
+      timerDisplay.className = 'timer';
+      timerDisplay.textContent = '00:00:00';
+
+      const stopBtn = document.createElement('button');
+      stopBtn.textContent = 'Parar';
+      stopBtn.onclick = () => {
+        clearInterval(contadorObj.interval);
+        stopBtn.disabled = true;
+        startBtn.disabled = false;
+      };
+      const startBtn = document.createElement('button');
+      startBtn.textContent = 'Iniciar';
+      startBtn.disabled = true;
+      startBtn.onclick = () => {
+        startTimer(contadorObj);
+        stopBtn.disabled = false;
+        startBtn.disabled = true;
+      };
+
+      const resetBtn = document.createElement('button');
+      resetBtn.textContent = 'Resetar';
+      resetBtn.onclick = () => {
+        contadorObj.segundos = 0;
+        timerDisplay.textContent = '00:00:00';
+      };
+
+      const removeBtn = document.createElement('button');
+      removeBtn.textContent = 'X';
+      removeBtn.className = 'remove-btn';
+      removeBtn.onclick = () => {
+        clearInterval(contadorObj.interval);
+        card.remove();
+      };
+
+      card.appendChild(removeBtn);
+      card.appendChild(infoPlaca);
+      card.appendChild(infoDoca);
+      card.appendChild(infoTransp);
+      card.appendChild(infoStartTime);
+      card.appendChild(timerDisplay);
+      card.appendChild(startBtn);
+      card.appendChild(stopBtn);
+      card.appendChild(resetBtn);
+
+      document.getElementById('cards').appendChild(card);
+
+      let contadorObj = {
+        segundos: 0,
+        interval: null,
+        timerDisplay: timerDisplay
+      };
+
+      function atualizarDisplay() {
+        let hrs = String(Math.floor(contadorObj.segundos / 3600)).padStart(2, '0');
+        let mins = String(Math.floor((contadorObj.segundos % 3600) / 60)).padStart(2, '0');
+        let secs = String(contadorObj.segundos % 60).padStart(2, '0');
+        contadorObj.timerDisplay.textContent = `${hrs}:${mins}:${secs}`;
+      }
+
+      function startTimer(obj) {
+        if (obj.interval) return;
+        obj.interval = setInterval(() => {
+          obj.segundos++;
+          atualizarDisplay();
+        }, 1000);
+      }
+
+      startTimer(contadorObj);
+
+      document.getElementById('placa').value = '';
+      document.getElementById('doca').value = '';
+      document.getElementById('transportadora').value = '';
+      stopBtn.disabled = false;
+      startBtn.disabled = true;
+
+      filtrarCards();
+    }
+
+    function filtrarCards() {
+      const filtro = document.getElementById('filtroTransportadora').value.trim().toLowerCase();
+      const cards = document.querySelectorAll('.card');
+      cards.forEach(card => {
+        const transportadora = card.getAttribute('data-transportadora');
+        if (filtro === '' || transportadora.includes(filtro)) {
+          card.style.display = '';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    }
+  </script>
+</body>
+</html>
